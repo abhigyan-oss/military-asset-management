@@ -7,6 +7,100 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Base {
+  id        String   @id @default(cuid())
+  name      String
+  location  String
+  createdAt DateTime @default(now())
+
+  inventories Inventory[]
+  users       User[]
+
+  transfersFrom Transfer[] @relation("FromBase")
+  transfersTo   Transfer[] @relation("ToBase")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  baseId String?
+  base   Base? @relation(fields: [baseId], references: [id])
+}
+
+model Equipment {
+  id          String   @id @default(cuid())
+  name        String
+  type        EquipmentType
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  inventories Inventory[]
+
+  purchases  Purchase[]
+  transfers  Transfer[]
+  assignments Assignment[]
+}
+
+model Inventory {
+  id          String   @id @default(cuid())
+  baseId      String
+  equipmentId String
+
+  openingBalance Int @default(0)
+  closingBalance Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  base      Base      @relation(fields: [baseId], references: [id])
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  @@unique([baseId, equipmentId])
+}
+
+model Purchase {
+  id           String   @id @default(cuid())
+  equipmentId  String
+  quantity     Int
+  supplier     String
+  purchaseDate DateTime @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
+model Transfer {
+  id           String   @id @default(cuid())
+  equipmentId  String
+  fromBaseId   String
+  toBaseId     String
+  quantity     Int
+  transferDate DateTime @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+
+  fromBase Base @relation("FromBase", fields: [fromBaseId], references: [id])
+  toBase   Base @relation("ToBase", fields: [toBaseId], references: [id])
+}
+
+model Assignment {
+  id             String   @id @default(cuid())
+  equipmentId    String
+  assignedTo     String
+  quantity       Int
+  assignmentDate DateTime @default(now())
+
+  equipment Equipment @relation(fields: [equipmentId], references: [id])
+}
+
 enum Role {
   ADMIN
   BASE_COMMANDER
@@ -20,23 +114,4 @@ enum EquipmentType {
   COMMUNICATION
   MEDICAL
   OTHER
-}
-
-model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Base {
-  id        String   @id @default(cuid())
-  name      String
-  location  String
-
-  createdAt DateTime @default(now())
 }
